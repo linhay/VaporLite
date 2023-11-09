@@ -19,7 +19,7 @@ public struct AxErrorMiddleware: Middleware {
         /// Always `true` to indicate this is a non-typical JSON response.
         var error: Bool
         /// The reason for the error.
-        var reason: String
+        var message: String
     }
 
     /// Create a default `ErrorMiddleware`. Logs errors to a `Logger` based on `Environment`
@@ -52,9 +52,7 @@ public struct AxErrorMiddleware: Middleware {
                 // if not release mode, and error is debuggable, provide debug info
                 // otherwise, deliver a generic 500 to avoid exposing any sensitive error info
                 code = ""
-                reason = environment.isRelease
-                    ? "Something went wrong."
-                    : String(describing: error)
+                reason = environment.isRelease ? "Something went wrong." : String(describing: error)
                 status = .internalServerError
                 headers = [:]
             }
@@ -67,7 +65,7 @@ public struct AxErrorMiddleware: Middleware {
             
             // attempt to serialize the error to json
             do {
-                let errorResponse = ErrorResponse(code: code, error: true, reason: reason)
+                let errorResponse = ErrorResponse(code: code, error: true, message: reason)
                 response.body = try .init(data: JSONEncoder().encode(errorResponse), byteBufferAllocator: req.byteBufferAllocator)
                 response.headers.replaceOrAdd(name: .contentType, value: "application/json; charset=utf-8")
             } catch {
