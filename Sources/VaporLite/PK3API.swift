@@ -63,7 +63,7 @@ public extension PK3API {
             try request.content.encode(query, as: .urlEncodedForm)
         })
         guard (200...299).contains(response.status.code) else {
-            throw AxLiteError.pk_network
+            throw AxError.pk_network
         }
         app.logger.debug("PK: 数据返回")
         let item = try response.content.decode(OpenAPIResponsor<Item>.self).results.item
@@ -82,7 +82,7 @@ private extension PK3API {
     
     func decrypt(encrypted: String, projectKey: String) throws -> Data {
         guard let data = Data(base64Encoded: encrypted) else {
-            throw AxLiteError.pk_decode
+            throw AxError.pk_decode
         }
         let key = projectKey.md5().bytes
         let cipher = try AES(key: Array(key[0..<16]),
@@ -113,7 +113,7 @@ private extension PK3API {
                 return key.trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-        throw AxLiteError.pk_file_not_exist
+        throw AxError.pk_file_not_exist
     }
     
 }

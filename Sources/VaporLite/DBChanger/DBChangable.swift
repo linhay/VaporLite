@@ -43,14 +43,14 @@ public extension DBChangable {
     func setJSON<V: Encodable>(for path: ReferenceWritableKeyPath<Self, String?>, _ value: V) throws {
         let data = try JSONEncoder.shared.encode(value)
         guard let str = String(data: data, encoding: .utf8) else {
-            throw AxLiteError.db_encode
+            throw AxError.database_encode
         }
         self[keyPath: path] = str
     }
     
     func getJSON<V: Decodable>(_ type: V.Type, from path: KeyPath<Self, String?>) throws -> V {
         guard let data = self[keyPath: path]?.data(using: .utf8) else {
-            throw AxLiteError.db_decode
+            throw AxError.database_decode
         }
         return try JSONDecoder.shared.decode(V.self, from: data)
     }
@@ -58,14 +58,14 @@ public extension DBChangable {
     func setJSON<V: Encodable>(for path: ReferenceWritableKeyPath<Self, String>, _ value: V) throws {
         let data = try JSONEncoder.shared.encode(value)
         guard let str = String(data: data, encoding: .utf8) else {
-            throw AxLiteError.db_encode
+            throw AxError.database_encode
         }
         self[keyPath: path] = str
     }
     
     func getJSON<V: Decodable>(_ type: V.Type, from path: KeyPath<Self, String>) throws -> V {
         guard let data = self[keyPath: path].data(using: .utf8) else {
-            throw AxLiteError.db_decode
+            throw AxError.database_decode
         }
         return try JSONDecoder.shared.decode(V.self, from: data)
     }
