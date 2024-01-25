@@ -112,24 +112,41 @@ public struct ClientLogQuery {
     
 }
 
+class ClientLogPayload: Codable {
+    var method: String?
+    var url: String?
+    var headers: [String]?
+    var body: String?
+    var response: String?
+    var error: String?
+}
+
 public extension Client {
     
     func request(_ request: ClientRequest, log: ClientLogQuery) async throws -> ClientResponse {
         var request = request
         request.headers = headers(merge: request.headers)
         
-        var messages = ["Client", request.method.rawValue, request.url.description.removingPercentEncoding ?? request.url.description]
-        defer { log.logger.log(level: log.level, .init(stringLiteral: messages.joined(separator: ", "))) }
-        messages.append("headers: [\(request.headers.filter({ $0.name.lowercased() != "authorization" }).description)]")
-        messages.append("userInfo: [\(log.userInfo.joined(separator: ","))]")
-        messages.append("query: \(body(by: request.body))")
-        
+        var logPayload = ClientLogPayload()
+        var logTarck = LoggerMessageTrack(name: "client", id: log.userInfo.joined(separator: ","))
+        logPayload.method = request.method.rawValue
+        logPayload.url  = request.url.description.removingPercentEncoding ?? request.url.description
+        logPayload.body = request.body.flatMap(String.init(buffer:))?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\n", with: "")
+        var messagePayload = LoggerMessagePayload(track: logTarck, data: logPayload)
+        defer { log.logger.log(level: log.level, .init(payload: messagePayload)) }
+                
         do {
             let response = try await self.send(request).get()
-            messages.append("body: \(self.body(by: response.body))")
+            logTarck.status = .success
+            logPayload.response = response.body
+                .flatMap(String.init(buffer:))?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "\n", with: "")
+                .replacingOccurrences(of: "  ", with: " ")
             return response
         } catch {
-            messages.append(String.init(describing: error))
+            logTarck.status = .failure
+            logPayload.error = String.init(describing: error)
             throw error
         }
         
@@ -141,57 +158,36 @@ public extension Client {
             headers.add(name: .userAgent, value: "vapor/aigc; apple/swift")
         }
         if !other.contains(name: .contentType) {
-            headers.add(name: .contentType, value: "application/json; charset=utf-8")
+            headers.contentType = .json
         }
         return headers
     }
-    
-    func body(by body: ByteBuffer?) -> String {
-        string(by: try? body?.string)
-    }
-    
-    func string(by string: String?) -> String {
-        string?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: "\n", with: "") ?? ""
-    }
-    
+
     func post(_ url: URI,
               headers: HTTPHeaders = [:],
               content: JSON,
-              userInfo: [String] = [],
-              logger: Logger,
-              logLevel: Logger.Level = .debug) async throws -> ClientResponse {
+              log: ClientLogQuery) async throws -> ClientResponse {
         let request = ClientRequest(method: .POST, url: url,
                                     headers: self.headers(merge: headers),
                                     body: try .init(data: content.rawData()))
-        return try await self.request(request,
-                                      log: .init(logger: logger, level: logLevel, userInfo: userInfo))
+        return try await self.request(request, log: log)
     }
     
     func post<T>(_ url: URI,
                  headers: HTTPHeaders = [:],
                  content: T,
-                 userInfo: [String] = [],
-                 logger: Logger,
-                 logLevel: Logger.Level = .debug) async throws -> ClientResponse where T: Content {
-        var request = ClientRequest(method: .POST, url: url,
-                                    headers: self.headers(merge: headers))
+                 log: ClientLogQuery) async throws -> ClientResponse where T: Content {
+        var request = ClientRequest(method: .POST, url: url, headers: self.headers(merge: headers))
         try request.content.encode(content)
-        return try await self.request(request,
-                                      log: .init(logger: logger, level: logLevel, userInfo: userInfo))
+        return try await self.request(request, log: log)
     }
     
     func get(_ url: URI,
              headers: HTTPHeaders = [:],
-             userInfo: [String] = [],
-             logger: Logger,
-             logLevel: Logger.Level = .debug,
+             log: ClientLogQuery,
              beforeSend: (inout ClientRequest) throws -> () = { _ in }) async throws -> ClientResponse {
-        let request = ClientRequest(method: .GET, url: url,
-                                    headers: self.headers(merge: headers))
-        return try await self.request(request,
-                                      log: .init(logger: logger, level: logLevel, userInfo: userInfo))
+        let request = ClientRequest(method: .GET, url: url, headers: self.headers(merge: headers))
+        return try await self.request(request, log: log)
     }
     
 }

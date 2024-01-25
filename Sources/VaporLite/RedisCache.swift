@@ -31,5 +31,4 @@ public extension RedisCache {
        try redis.delete([key]).wait()
     }
     
-    
 }
