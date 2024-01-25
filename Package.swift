@@ -17,7 +17,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
-        .package(url: "https://github.com/linhay/STJSON", from: "1.0.5"),
+        .package(url: "https://github.com/linhay/STJSON", from: "1.1.2"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.7.0")),
         .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.0.0")),
     ],
