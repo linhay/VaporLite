@@ -68,6 +68,10 @@ public extension Logger.Message {
         self.init(payload: .init(track: track))
     }
     
+    init(track: String, status: LoggerMessagePayloadStatus) {
+        self.init(payload: .init(track: .init(name: track, status: status)))
+    }
+    
     init<Element: Codable>(codable payload: Element) {
         let str = try? JSONEncoder.encodeToJSON(payload, builder: { encoder in
             encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
