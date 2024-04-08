@@ -19,83 +19,6 @@ public extension String {
     
 }
 
-public extension HTTPFields {
-    
-    init(_ fields: HTTPHeaders) {
-        var headers = HTTPFields()
-        for field in fields {
-            if let name = HTTPField.Name(field.name) {
-                headers[name] = field.value
-            }
-        }
-        self = headers
-    }
-    
-}
-
-public extension HTTPField {
-    
-    var isoLatin1Value: String {
-        if self.value.isASCII {
-            return self.value
-        } else {
-            return self.withUnsafeBytesOfValue { buffer in
-                let scalars = buffer.lazy.map { UnicodeScalar(UInt32($0))! }
-                var string = ""
-                string.unicodeScalars.append(contentsOf: scalars)
-                return string
-            }
-        }
-    }
-    
-    
-}
-
-public extension HTTPHeaders {
-    
-    init(_ fields: HTTPFields) {
-        var combinedFields = [HTTPField.Name: String](minimumCapacity: fields.count)
-        for field in fields {
-            if let existingValue = combinedFields[field.name] {
-                let separator = field.name == .cookie ? "; " : ", "
-                combinedFields[field.name] = "\(existingValue)\(separator)\(field.isoLatin1Value)"
-            } else {
-                combinedFields[field.name] = field.isoLatin1Value
-            }
-        }
-        var headers = HTTPHeaders()
-        for (name, value) in combinedFields {
-            headers.add(name: name.rawName, value: value)
-        }
-        self = headers
-    }
-    
-}
-
-public extension ClientRequest {
-    
-    init?(_ httpRequest: HTTPRequest) {
-        guard let url = httpRequest.url else {
-            return nil
-        }
-        var request = ClientRequest(url: .init(string: url.absoluteString))
-        request.method  = .init(rawValue: httpRequest.method.rawValue)
-        request.headers = .init(httpRequest.headerFields)
-        self = request
-    }
-    
-}
-
-public extension HTTPResponse {
-    
-    init(_ response: ClientResponse) {
-        self.init(status: .init(code: Int(response.status.code),
-                                reasonPhrase: response.status.reasonPhrase),
-                  headerFields: .init(response.headers))
-    }
-    
-}
-
 public struct ClientLogQuery {
     
     public let logger: Logger
@@ -127,12 +50,12 @@ public extension Client {
         var request = request
         request.headers = headers(merge: request.headers)
         
-        var logPayload = ClientLogPayload()
-        var logTarck = LoggerMessageTrack(name: "client", id: log.userInfo.joined(separator: ","))
+        let logPayload = ClientLogPayload()
+        let logTarck = LoggerMessageTrack(name: "client", id: log.userInfo.joined(separator: ","))
         logPayload.method = request.method.rawValue
         logPayload.url  = request.url.description.removingPercentEncoding ?? request.url.description
         logPayload.body = request.body.flatMap(String.init(buffer:))?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\n", with: "")
-        var messagePayload = LoggerMessagePayload(track: logTarck, data: logPayload)
+        let messagePayload = LoggerMessagePayload(track: logTarck, data: logPayload)
         defer { log.logger.log(level: log.level, .init(payload: messagePayload)) }
                 
         do {
