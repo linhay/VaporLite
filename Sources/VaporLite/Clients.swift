@@ -53,8 +53,16 @@ public extension Client {
         let logPayload = ClientLogPayload()
         let logTarck = LoggerMessageTrack(name: "client", id: log.userInfo.joined(separator: ","))
         logPayload.method = request.method.rawValue
-        logPayload.url  = request.url.description.removingPercentEncoding ?? request.url.description
-        logPayload.body = request.body.flatMap(String.init(buffer:))?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\n", with: "")
+        logPayload.url    = request.url.description.removingPercentEncoding ?? request.url.description
+        logPayload.body   = request.body
+            .flatMap(String.init(buffer:))?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\n", with: "")
+            .replacingOccurrences(of: "  ", with: " ")
+            .prefix(200)
+            .description
+        request.body.flatMap(String.init(buffer:))?.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\n", with: "")
+        
         let messagePayload = LoggerMessagePayload(track: logTarck, data: logPayload)
         defer { log.logger.log(level: log.level, .init(payload: messagePayload)) }
                 
@@ -66,6 +74,9 @@ public extension Client {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .replacingOccurrences(of: "\n", with: "")
                 .replacingOccurrences(of: "  ", with: " ")
+                .prefix(200)
+                .description
+            
             return response
         } catch {
             logTarck.status = .failure
@@ -84,16 +95,6 @@ public extension Client {
             headers.contentType = .json
         }
         return headers
-    }
-
-    func post(_ url: URI,
-              headers: HTTPHeaders = [:],
-              content: JSON,
-              log: ClientLogQuery) async throws -> ClientResponse {
-        let request = ClientRequest(method: .POST, url: url,
-                                    headers: self.headers(merge: headers),
-                                    body: try .init(data: content.rawData()))
-        return try await self.request(request, log: log)
     }
     
     func post<T>(_ url: URI,

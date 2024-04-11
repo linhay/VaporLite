@@ -18,7 +18,7 @@ public enum LoggerMessagePayloadStatus: String, Codable {
     case success = "✅"
 }
 
-public class LoggerMessageTrack: Codable, ExpressibleByStringLiteral {
+public final class LoggerMessageTrack: Codable, ExpressibleByStringLiteral {
     
     public var id: String?
     public var name: String?
@@ -34,7 +34,7 @@ public class LoggerMessageTrack: Codable, ExpressibleByStringLiteral {
         self.status = status
     }
     
-    required public convenience init(stringLiteral value: String) {
+    public convenience init(stringLiteral value: String) {
         self.init(name: value)
     }
     
