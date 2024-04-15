@@ -18,7 +18,7 @@ public extension Application {
             return client
         }
         let configuration: HTTPClient.Configuration = .init()
-        let client = AppClient(configuration: configuration)
+        let client = AppClient(configuration: configuration, logger: logger)
         storage.set(NormalClient.self, to: client) { client in
             client.shutdown(self)
         }
@@ -35,8 +35,13 @@ struct NormalClient: StorageKey {
 public struct AppClient: OAIClientProtocol, LifecycleHandler {
         
     public let client: HTTPClient
+    public let logger: Logger?
 
-    public init(configuration: HTTPClient.Configuration) {
+    public init(configuration: HTTPClient.Configuration, logger: Logger? = nil) {
+        var configuration = configuration
+        configuration.connectionPool.idleTimeout
+        configuration.connectionPool.concurrentHTTP1ConnectionsPerHostSoftLimit = 2 * 1024
+        self.logger = logger
         self.client = .init(configuration: configuration)
     }
     
@@ -95,7 +100,13 @@ public struct AppClient: OAIClientProtocol, LifecycleHandler {
         if request.headers[.userAgent] == nil {
             request.headers.add(name: .userAgent, value: "vapor/aigc; apple/swift")
         }
-        return try await client.execute(request, timeout: .minutes(10))
+        do {
+            return try await client.execute(request, timeout: .minutes(10))
+        } catch {
+            let prefix = "[\(request.method.rawValue)] \(request.url.description)"
+            logger?.error("\(prefix)\n\(String.init(describing: error))")
+            throw error
+        }
     }
     
     public func vaild(of result: HTTPClientResponse) throws {
