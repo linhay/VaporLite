@@ -13,13 +13,13 @@ import AsyncHTTPClient
 
 public extension Application {
     
-    var appClient: AppClient {
-        if let client = storage.get(NormalClient.self) {
+    var nioClient: NIOClient {
+        if let client = storage.get(NIOClientKey.self) {
             return client
         }
         let configuration: HTTPClient.Configuration = .init()
-        let client = AppClient(configuration: configuration, logger: logger)
-        storage.set(NormalClient.self, to: client) { client in
+        let client = NIOClient(configuration: configuration, logger: logger)
+        storage.set(NIOClientKey.self, to: client) { client in
             client.shutdown(self)
         }
         return client
@@ -27,12 +27,11 @@ public extension Application {
     
 }
 
-struct NormalClient: StorageKey {
-    typealias Value = AppClient
+struct NIOClientKey: StorageKey {
+    typealias Value = NIOClient
 }
 
-
-public struct AppClient: OAIClientProtocol, LifecycleHandler {
+public struct NIOClient: OAIClientProtocol, LifecycleHandler {
         
     public let client: HTTPClient
     public let logger: Logger?
@@ -40,7 +39,7 @@ public struct AppClient: OAIClientProtocol, LifecycleHandler {
     public init(configuration: HTTPClient.Configuration, logger: Logger? = nil) {
         var configuration = configuration
         configuration.connectionPool.idleTimeout
-        configuration.connectionPool.concurrentHTTP1ConnectionsPerHostSoftLimit = 2 * 1024
+        configuration.connectionPool.concurrentHTTP1ConnectionsPerHostSoftLimit = 1024
         self.logger = logger
         self.client = .init(configuration: configuration)
     }
