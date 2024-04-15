@@ -54,16 +54,16 @@ public extension Model {
     
     static func scan(page_size: Int = 1000,
                      on database: Database,
+                     builder: (_ builder: QueryBuilder<Self>) -> QueryBuilder<Self> = { $0 },
                      callback: ((_ model: Self) async throws -> Void),
                      finish: (() async throws -> Void)? = nil) async throws {
-        let count = try await Self.query(on: database).count()
+        let count = try await builder(Self.query(on: database)).count()
         guard count > 0 else {
             return
         }
         let max_page_number = count / page_size + (count % page_size == 0 ? 0 : 1)
         for index in 1...max_page_number {
-            let items = try await Self
-                .query(on: database)
+            let items = try await builder(Self.query(on: database))
                 .page(withIndex: index, size: page_size)
                 .items
             for item in items {
