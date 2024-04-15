@@ -45,31 +45,29 @@ public struct AppClient: OAIClientProtocol, LifecycleHandler {
     }
     
     public func data(for request: HTTPRequest) async throws -> OAIClientResponse {
-        guard let request = try HTTPClient.Request(request) else {
+        guard var request = HTTPClientRequest.init(request, body: nil) else {
             throw Abort(.internalServerError)
         }
-        let result = try await client.execute(request: request).get()
-        return try response(of: result)
+        let result = try await execute(request)
+        return try await response(of: result)
     }
     
     public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> OAIClientResponse {
-        guard var request = try HTTPClient.Request(request) else {
+        guard var request = HTTPClientRequest.init(request, body: .init(data: bodyData)) else {
             throw Abort(.internalServerError)
         }
-        request.body = .data(bodyData)
-        let result = try await client.execute(request: request).get()
-        return try response(of: result)
+        let result = try await execute(request)
+        return try await response(of: result)
     }
     
     public func serverSendEvent(for request: HTTPRequest, from bodyData: Data, failure: (OAIClientResponse) async throws -> Void) async throws -> AsyncThrowingStream<Data, Error> {
         guard let request = HTTPClientRequest(request, body: .init(data: bodyData)) else {
             throw Abort(.internalServerError)
         }
-        let response = try await client.execute(request, timeout: .minutes(10))
+        let response = try await execute(request)
         if response.status != .ok {
             var data = Data()
             for try await buffer in response.body {
-                print(String.init(buffer: buffer))
                 data.append(.init(buffer: buffer))
             }
             try await failure(.init(data: data, response: response.httpResponse))
@@ -79,7 +77,6 @@ public struct AppClient: OAIClientProtocol, LifecycleHandler {
         Task {
             do {
                 for try await buffer in response.body {
-                    print(String.init(buffer: buffer))
                     continuation.yield(.init(buffer: buffer))
                 }
                 continuation.finish()
@@ -90,19 +87,32 @@ public struct AppClient: OAIClientProtocol, LifecycleHandler {
         return stream
     }
 
+    public func execute(_ request: HTTPClientRequest) async throws -> HTTPClientResponse {
+        var request = request
+        if request.headers.contentType == nil {
+            request.headers.contentType = .json
+        }
+        if request.headers[.userAgent] == nil {
+            request.headers.add(name: .userAgent, value: "vapor/aigc; apple/swift")
+        }
+        return try await client.execute(request, timeout: .minutes(10))
+    }
+    
     public func vaild(of result: HTTPClientResponse) throws {
         if result.status.code < 200 || result.status.code > 299 {
             throw Abort(.init(statusCode: Int(result.status.code)))
         }
     }
     
-    public func response(of result: HTTPClient.Response) throws -> OAIClientResponse {
-        if result.status.code < 200 || result.status.code > 299 {
-            throw Abort(.init(statusCode: Int(result.status.code)))
-        } else if let bytesView = result.body.flatMap({ Data.init(buffer: $0) }) {
-            return .init(data: bytesView, response: result.httpResponse)
+    public func response(of response: HTTPClientResponse) async throws -> OAIClientResponse {
+        if response.status.code < 200 || response.status.code > 299 {
+            throw Abort(.init(statusCode: Int(response.status.code)))
         } else {
-            return .init(data: .init(), response: result.httpResponse)
+            var data = Data()
+            for try await buffer in response.body {
+                data.append(.init(buffer: buffer))
+            }
+            return .init(data: data, response: response.httpResponse)
         }
     }
     
