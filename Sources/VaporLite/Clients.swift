@@ -11,14 +11,6 @@ import STJSON
 import HTTPTypes
 import HTTPTypesFoundation
 
-public extension String {
-    
-    var isASCII: Bool {
-        self.utf8.allSatisfy { $0 & 0x80 == 0 }
-    }
-    
-}
-
 public struct ClientLogQuery {
     
     public let logger: Logger

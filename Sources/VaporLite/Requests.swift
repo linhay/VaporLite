@@ -11,6 +11,15 @@ import Logging
 import STJSON
 import HTTPTypes
 import HTTPTypesFoundation
+import AsyncHTTPClient
+
+public extension String {
+    
+    var isASCII: Bool {
+        self.utf8.allSatisfy { $0 & 0x80 == 0 }
+    }
+    
+}
 
 public extension HTTPField {
     
@@ -84,6 +93,51 @@ public extension HTTPClient.Response {
                   version: version,
                   headers: .init(httpResponse.headerFields),
                   body: body)
+    }
+    
+    var httpResponse: HTTPResponse {
+        .init(status: .init(code: Int(status.code),
+                            reasonPhrase: status.reasonPhrase),
+              headerFields: headers.httpFields)
+    }
+    
+}
+
+public extension HTTPClientRequest {
+    
+    init?(_ httpRequest: HTTPRequest, body: ByteBuffer?) {
+        guard let url = httpRequest.url else {
+            return nil
+        }
+        var request = HTTPClientRequest(url: url.absoluteString)
+        request.method  = .init(rawValue: httpRequest.method.rawValue)
+        request.headers = .init(httpRequest.headerFields)
+        request.body    = body.flatMap(Body.bytes) ?? .none
+        self = request
+    }
+    
+    var httpRequest: HTTPRequest {
+        let url = URL(string: url)
+        return HTTPRequest(method: .init(rawValue: method.rawValue) ?? .get,
+                           scheme: url?.scheme,
+                           authority: [url?.host, url?.port?.description]
+            .compactMap({ $0 })
+            .joined(separator: ":"),
+                           path: url?.path,
+                           headerFields: headers.httpFields)
+    }
+    
+}
+
+public extension HTTPClientResponse {
+    
+    init(_ httpResponse: HTTPResponse,
+         version: HTTPVersion = .http1_1,
+         body: ByteBuffer? = .init()) {
+        self.init(version: version,
+                  status: .init(statusCode: httpResponse.status.code),
+                  headers: .init(httpResponse.headerFields),
+                  body: body.flatMap(Body.bytes) ?? .init())
     }
     
     var httpResponse: HTTPResponse {
