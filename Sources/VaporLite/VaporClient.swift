@@ -8,7 +8,6 @@
 import OpenAICore
 import Vapor
 import HTTPTypes
-import VaporLite
 import AsyncHTTPClient
 
 public extension Application {
@@ -28,7 +27,7 @@ struct VaporClientKey: StorageKey {
     typealias Value = VaporClient
 }
 
-public struct VaporClient: OAIClientProtocol {
+public struct VaporClient: LLMClientProtocol {
         
     public let client: Vapor.Client
     public let logger: Logger?
@@ -38,23 +37,23 @@ public struct VaporClient: OAIClientProtocol {
         self.client = client
     }
     
-    public func data(for request: HTTPRequest) async throws -> OAIClientResponse {
-        guard var request = ClientRequest.init(request, body: nil) else {
+    public func data(for request: HTTPRequest) async throws -> LLMResponse {
+        guard let request = ClientRequest.init(request, body: nil) else {
             throw Abort(.internalServerError)
         }
         let result = try await execute(request, logger: logger)
         return try await response(of: result)
     }
     
-    public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> OAIClientResponse {
-        guard var request = ClientRequest.init(request, body: .init(data: bodyData)) else {
+    public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {
+        guard let request = ClientRequest.init(request, body: .init(data: bodyData)) else {
             throw Abort(.internalServerError)
         }
         let result = try await execute(request, logger: logger)
         return try await response(of: result)
     }
     
-    public func serverSendEvent(for request: HTTPRequest, from bodyData: Data, failure: (OAIClientResponse) async throws -> Void) async throws -> AsyncThrowingStream<Data, Error> {
+    public func serverSendEvent(for request: HTTPRequest, from bodyData: Data, failure: (LLMResponse) async throws -> Void) async throws -> AsyncThrowingStream<Data, Error> {
         assertionFailure("use NIOClient")
         return .makeStream().stream
     }
@@ -64,7 +63,7 @@ public struct VaporClient: OAIClientProtocol {
         if request.headers.contentType == nil {
             request.headers.contentType = .json
         }
-        if request.headers[.userAgent] == nil {
+        if request.headers[.userAgent].isEmpty {
             request.headers.add(name: .userAgent, value: "vapor/aigc; apple/swift")
         }
         let prefix = "[\(request.method.rawValue)] \(request.url.description)"
@@ -92,7 +91,7 @@ public struct VaporClient: OAIClientProtocol {
         }
     }
     
-    public func response(of response: ClientResponse) async throws -> OAIClientResponse {
+    public func response(of response: ClientResponse) async throws -> LLMResponse {
         if response.status.code < 200 || response.status.code > 299 {
             throw Abort(.init(statusCode: Int(response.status.code)))
         } else {

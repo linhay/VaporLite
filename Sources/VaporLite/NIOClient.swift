@@ -8,7 +8,6 @@
 import OpenAICore
 import Vapor
 import HTTPTypes
-import VaporLite
 import AsyncHTTPClient
 
 public extension Application {
@@ -31,14 +30,13 @@ struct NIOClientKey: StorageKey {
     typealias Value = NIOClient
 }
 
-public struct NIOClient: OAIClientProtocol, LifecycleHandler {
+public struct NIOClient: LLMClientProtocol, LifecycleHandler {
         
     public let client: HTTPClient
     public let logger: Logger?
 
     public init(configuration: HTTPClient.Configuration, logger: Logger? = nil) {
         var configuration = configuration
-        configuration.connectionPool.idleTimeout
         configuration.connectionPool.concurrentHTTP1ConnectionsPerHostSoftLimit = 1024
         self.logger = logger
         self.client = .init(configuration: configuration)
@@ -48,23 +46,23 @@ public struct NIOClient: OAIClientProtocol, LifecycleHandler {
         try? client.syncShutdown()
     }
     
-    public func data(for request: HTTPRequest) async throws -> OAIClientResponse {
-        guard var request = HTTPClientRequest.init(request, body: nil) else {
+    public func data(for request: HTTPRequest) async throws -> LLMResponse {
+        guard let request = HTTPClientRequest.init(request, body: nil) else {
             throw Abort(.internalServerError)
         }
         let result = try await execute(request)
         return try await response(of: result)
     }
     
-    public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> OAIClientResponse {
-        guard var request = HTTPClientRequest.init(request, body: .init(data: bodyData)) else {
+    public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {
+        guard let request = HTTPClientRequest.init(request, body: .init(data: bodyData)) else {
             throw Abort(.internalServerError)
         }
         let result = try await execute(request)
         return try await response(of: result)
     }
     
-    public func serverSendEvent(for request: HTTPRequest, from bodyData: Data, failure: (OAIClientResponse) async throws -> Void) async throws -> AsyncThrowingStream<Data, Error> {
+    public func serverSendEvent(for request: HTTPRequest, from bodyData: Data, failure: (LLMResponse) async throws -> Void) async throws -> AsyncThrowingStream<Data, Error> {
         guard let request = HTTPClientRequest(request, body: .init(data: bodyData)) else {
             throw Abort(.internalServerError)
         }
@@ -96,7 +94,7 @@ public struct NIOClient: OAIClientProtocol, LifecycleHandler {
         if request.headers.contentType == nil {
             request.headers.contentType = .json
         }
-        if request.headers[.userAgent] == nil {
+        if request.headers[.userAgent].isEmpty {
             request.headers.add(name: .userAgent, value: "vapor/aigc; apple/swift")
         }
         do {
@@ -114,7 +112,7 @@ public struct NIOClient: OAIClientProtocol, LifecycleHandler {
         }
     }
     
-    public func response(of response: HTTPClientResponse) async throws -> OAIClientResponse {
+    public func response(of response: HTTPClientResponse) async throws -> LLMResponse {
         if response.status.code < 200 || response.status.code > 299 {
             throw Abort(.init(statusCode: Int(response.status.code)))
         } else {
