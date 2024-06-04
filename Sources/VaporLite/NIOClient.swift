@@ -31,7 +31,7 @@ struct NIOClientKey: StorageKey {
 }
 
 public struct NIOClient: LLMClientProtocol, LifecycleHandler {
-        
+
     public let client: HTTPClient
     public let logger: Logger?
 
@@ -52,6 +52,10 @@ public struct NIOClient: LLMClientProtocol, LifecycleHandler {
         }
         let result = try await execute(request)
         return try await response(of: result)
+    }
+    
+    public func upload(for request: HTTPTypes.HTTPRequest, from fields: [OpenAICore.LLMMultipartField]) async throws -> OpenAICore.LLMResponse {
+        fatalError()
     }
     
     public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {

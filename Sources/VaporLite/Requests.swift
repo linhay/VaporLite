@@ -154,7 +154,10 @@ public extension ClientRequest {
         guard let url = httpRequest.url else {
             return nil
         }
+        var httpRequest = httpRequest
         var request = ClientRequest(url: .init(string: url.absoluteString), body: body)
+        request.url.userinfo = httpRequest.headerFields[.userinfo]
+        httpRequest.headerFields[.userinfo] = nil
         request.method  = .init(rawValue: httpRequest.method.rawValue)
         request.headers = .init(httpRequest.headerFields)
         self = request
@@ -164,7 +167,7 @@ public extension ClientRequest {
         HTTPRequest(method: .init(rawValue: method.rawValue) ?? .get,
                     scheme: url.scheme,
                     authority: [url.host, url.port?.description].compactMap({ $0 }).joined(separator: ":"),
-                    path: url.path,
+                    path: [url.path, url.query].compactMap({ $0 }).joined(separator: "?"),
                     headerFields: headers.httpFields)
     }
     

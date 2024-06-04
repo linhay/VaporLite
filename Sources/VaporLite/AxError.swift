@@ -3,7 +3,7 @@
 
 import Vapor
 
-public struct AxError: AbortError {
+public struct AxError: AbortError, LocalizedError {
     
     public let status: HTTPResponseStatus
     public let reason: String
@@ -15,6 +15,10 @@ public struct AxError: AbortError {
         self.status = status
         self.reason = reason
         self.code = code
+    }
+    
+    public var errorDescription: String? {
+        reason
     }
     
 }

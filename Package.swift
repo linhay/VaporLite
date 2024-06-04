@@ -22,7 +22,7 @@ let package = Package(
         .package(url: "https://github.com/linhay/STJSON", from: "1.1.2"),
         .package(url: "https://github.com/AxApp/OpenAICore", from: "1.2.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.7.0")),
-        .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.0.0")),
+        .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.1.0")),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
