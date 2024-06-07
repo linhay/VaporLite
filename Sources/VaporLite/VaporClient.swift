@@ -27,40 +27,6 @@ struct VaporClientKey: StorageKey {
     typealias Value = VaporClient
 }
 
-public extension LLMClientProtocol {
-    
-    func createMultipartFormData(from fields: [LLMMultipartField]) throws -> (ByteBuffer, HTTPMediaType) {
-        let boundary = UUID().uuidString
-        var buffer = ByteBuffer()
-        for field in fields {
-            switch field {
-            case .file(let file):
-                buffer.writeString("--\(boundary)\r\n")
-                buffer.writeString("Content-Disposition: form-data; name=\"file\"; filename=\"\(file.name)\"\r\n")
-                if let mimeType = file.mimeType {
-                    buffer.writeString("Content-Type: \(mimeType)\r\n\r\n")
-                }
-                try buffer.writeData(Data.init(contentsOf: file.fileURL))
-                buffer.writeString("\r\n")
-            case let .string(name, value):
-                buffer.writeString("--\(boundary)\r\n")
-                buffer.writeString("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n")
-                buffer.writeString("\(value)\r\n")
-            }
-        }
-
-        buffer.writeString("--\(boundary)--\r\n")
-
-        let mediaType = HTTPMediaType(
-            type: "multipart",
-            subType: "form-data",
-            parameters: ["boundary": boundary]
-        )
-
-        return (buffer, mediaType)
-    }
-}
-
 public struct VaporClient: LLMClientProtocol {
     
     public let client: Vapor.Client
@@ -80,12 +46,7 @@ public struct VaporClient: LLMClientProtocol {
     }
     
     public func upload(for request: HTTPRequest, from fields: [LLMMultipartField]) async throws -> LLMResponse {
-        guard let request = ClientRequest.init(request, body: .init()) else {
-            throw Abort(.internalServerError)
-        }
-        let a = try createMultipartFormData(from: fields)
-        let result = try await execute(request, logger: logger)
-        return try await response(of: result)
+       try await AFClient(logger: logger).upload(for: request, from: fields)
     }
     
     public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {
@@ -118,7 +79,6 @@ public struct VaporClient: LLMClientProtocol {
                     .replacingOccurrences(of: "\n", with: "")
                     .split(separator: " ", omittingEmptySubsequences: true)
                     .reduce("", { $0 + " " + $1 })
-//                    .prefix(1024)
                 logger.info("\(prefix)\n\(str ?? "")")
             }
             return response
