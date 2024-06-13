@@ -1,6 +1,6 @@
 //
 //  File.swift
-//  
+//
 //
 //  Created by linhey on 2024/6/5.
 //
@@ -31,14 +31,20 @@ struct AFClientKey: StorageKey {
 }
 
 public struct AFClient: LLMClientProtocol {
-
+    
     public let logger: Logger?
-
-    public func data(for request: HTTPRequest) async throws -> LLMResponse {
-        guard let request = URLRequest(httpRequest: request) else {
+    var timeoutInterval: Double = 60 * 5
+    
+    func request(of request: HTTPRequest) throws -> URLRequest {
+        guard var request = URLRequest(httpRequest: request) else {
             throw Abort(.internalServerError)
         }
-        let response = try await AF.request(request).serializingData()
+        request.timeoutInterval = timeoutInterval
+        return request
+    }
+    
+    public func data(for request: HTTPRequest) async throws -> LLMResponse {
+        let response = try await AF.request(self.request(of: request)).serializingData()
         guard let httpResponse = await response.response.response?.httpResponse else {
             throw Abort(.internalServerError)
         }
@@ -46,10 +52,7 @@ public struct AFClient: LLMClientProtocol {
     }
     
     public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {
-        guard let request = URLRequest(httpRequest: request) else {
-            throw Abort(.internalServerError)
-        }
-        let response = try await AF.upload(bodyData, with: request).serializingData()
+        let response = try await AF.upload(bodyData, with: self.request(of: request)).serializingData()
         guard let httpResponse = await response.response.response?.httpResponse else {
             throw Abort(.internalServerError)
         }
@@ -61,7 +64,7 @@ public struct AFClient: LLMClientProtocol {
     }
     
     public func upload(for request: HTTPRequest, from fields: [LLMMultipartField]) async throws -> LLMResponse {
-        let response = AF.upload(multipartFormData: { form in
+        let response = try AF.upload(multipartFormData: { form in
             
             for field in fields {
                 switch field {
@@ -81,10 +84,9 @@ public struct AFClient: LLMClientProtocol {
                 }
             }
             
-        }, with: URLRequest(httpRequest: request)!)
-        .serializingData()
+        }, with: self.request(of: request)).serializingData()
         logger?.info("upload: \(request.url?.absoluteString ?? "") \(fields)")
         return try await .init(data: response.value, response: response.response.response!.httpResponse!)
     }
-
+    
 }
