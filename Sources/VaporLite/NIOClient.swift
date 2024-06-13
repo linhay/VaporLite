@@ -37,7 +37,6 @@ public struct NIOClient: LLMClientProtocol, LifecycleHandler {
 
     public init(configuration: HTTPClient.Configuration, logger: Logger? = nil) {
         var configuration = configuration
-        configuration.connectionPool.concurrentHTTP1ConnectionsPerHostSoftLimit = 1024
         self.logger = logger
         self.client = .init(configuration: configuration)
     }
