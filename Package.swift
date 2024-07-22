@@ -18,12 +18,13 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.9.1")),
         .package(url: "https://github.com/vapor/vapor.git", from: "4.92.6"),
+        .package(url: "https://github.com/vapor/queues.git", from: "1.15.0"),
         .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
         .package(url: "https://github.com/linhay/STJSON", from: "1.1.2"),
         .package(url: "https://github.com/AxApp/OpenAICore", from: "1.3.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.7.0")),
-        .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.1.0")),
+        .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.2.0")),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -33,6 +34,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Alamofire", package: "Alamofire"),
                 .product(name: "Vapor", package: "vapor"),
+                .product(name: "Queues", package: "queues"),
                 .product(name: "Redis", package: "redis"),
                 .product(name: "Fluent", package: "fluent"),
                 .product(name: "OpenAICore", package: "OpenAICore"),

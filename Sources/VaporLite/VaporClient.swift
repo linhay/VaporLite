@@ -30,6 +30,7 @@ struct VaporClientKey: StorageKey {
 public struct VaporClient: LLMClientProtocol {
     
     public let client: Vapor.Client
+    public var timeoutInterval: Double = 60 * 5
     public let logger: Logger?
 
     public init(client: Vapor.Client, logger: Logger? = nil) {
@@ -37,7 +38,7 @@ public struct VaporClient: LLMClientProtocol {
         self.client = client
     }
     
-    public func data(for request: HTTPRequest) async throws -> LLMResponse {
+    public func data(for request: HTTPRequest, progress: RequestProgress?) async throws -> LLMResponse {
         guard let request = ClientRequest.init(request, body: nil) else {
             throw Abort(.internalServerError)
         }
@@ -46,7 +47,7 @@ public struct VaporClient: LLMClientProtocol {
     }
     
     public func upload(for request: HTTPRequest, from fields: [LLMMultipartField]) async throws -> LLMResponse {
-       try await AFClient(logger: logger).upload(for: request, from: fields)
+        try await AFClient(logger: logger, timeoutInterval: timeoutInterval).upload(for: request, from: fields)
     }
     
     public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {

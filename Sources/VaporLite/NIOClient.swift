@@ -45,7 +45,7 @@ public struct NIOClient: LLMClientProtocol, LifecycleHandler {
         try? client.syncShutdown()
     }
     
-    public func data(for request: HTTPRequest) async throws -> LLMResponse {
+    public func data(for request: HTTPRequest, progress: RequestProgress?) async throws -> LLMResponse {
         guard let request = HTTPClientRequest.init(request, body: nil) else {
             throw Abort(.internalServerError)
         }
