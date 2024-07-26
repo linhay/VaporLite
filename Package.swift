@@ -21,7 +21,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/queues.git", from: "1.15.0"),
         .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
-        .package(url: "https://github.com/linhay/STJSON", from: "1.1.2"),
+        .package(url: "https://github.com/linhay/STJSON", from: "1.1.4"),
         .package(url: "https://github.com/AxApp/OpenAICore", from: "1.3.0"),
         .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.7.0")),
         .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.2.0")),
