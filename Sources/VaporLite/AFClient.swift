@@ -23,7 +23,7 @@ public extension Application {
         storage.set(AFClientKey.self, to: client)
         return client
     }
-
+    
 }
 
 struct AFClientKey: StorageKey {
@@ -35,12 +35,13 @@ public class AFClient: LLMClientProtocol {
     public let logger: Logger?
     public var timeoutInterval: Double
     private let session: Alamofire.Session
-
+    
     public init(session: Alamofire.Session = .default,
                 logger: Logger?,
                 timeoutInterval: Double) {
         self.logger = logger
         self.session = session
+        self.session.sessionConfiguration.timeoutIntervalForRequest = timeoutInterval
         self.timeoutInterval = timeoutInterval
     }
     
@@ -54,19 +55,22 @@ public class AFClient: LLMClientProtocol {
     
     public func data(for request: HTTPRequest, progress: RequestProgress?) async throws -> LLMResponse {
         let response = try await session.request(self.request(of: request))
+            .validate()
             .downloadProgress { unit in
                 progress?(unit.totalUnitCount, unit.completedUnitCount)
             }
             .serializingData()
-        let data = try await response.value
         guard let httpResponse = await response.response.response?.httpResponse else {
             throw Abort(.internalServerError)
         }
+        let data = try await response.value
         return try await .init(data: data, response: httpResponse)
     }
     
     public func upload(for request: HTTPRequest, from bodyData: Data) async throws -> LLMResponse {
-        let response = try await session.upload(bodyData, with: self.request(of: request)).serializingData()
+        let response = try await session.upload(bodyData, with: self.request(of: request))
+            .validate()
+            .serializingData()
         guard let httpResponse = await response.response.response?.httpResponse else {
             throw Abort(.internalServerError)
         }
@@ -75,6 +79,7 @@ public class AFClient: LLMClientProtocol {
     
     public func upload(for request: HTTPRequest, fromFile fileURL: URL, progress: @escaping (_ total: Int64, _ completed: Int64) -> Void?) async throws -> LLMResponse {
         let response = try await session.upload(fileURL, with: self.request(of: request))
+            .validate()
             .uploadProgress { unit in
                 progress(unit.completedUnitCount, unit.completedUnitCount)
             }

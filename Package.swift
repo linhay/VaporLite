@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "VaporLite",
     platforms: [
-        .macOS(.v12),
+        .macOS(.v13),
         .iOS(.v13)
     ],
     products: [
@@ -16,15 +16,16 @@ let package = Package(
             targets: ["VaporLite"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/Alamofire/Alamofire.git", .upToNextMajor(from: "5.9.1")),
-        .package(url: "https://github.com/vapor/vapor.git", from: "4.92.6"),
-        .package(url: "https://github.com/vapor/queues.git", from: "1.15.0"),
-        .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
-        .package(url: "https://github.com/vapor/fluent.git", from: "4.0.0"),
+        .package(url: "https://github.com/Alamofire/Alamofire.git", from: "5.10.0"),
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.106.1"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
+        .package(url: "https://github.com/vapor/queues.git", from: "1.16.1"),
+        .package(url: "https://github.com/vapor/redis.git", from: "4.11.0"),
+        .package(url: "https://github.com/vapor/fluent.git", from: "4.12.0"),
         .package(url: "https://github.com/linhay/STJSON", from: "1.1.4"),
-        .package(url: "https://github.com/AxApp/OpenAICore", from: "1.3.0"),
-        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from: "1.7.0")),
-        .package(url: "https://github.com/apple/swift-http-types.git", .upToNextMajor(from: "1.2.0")),
+        .package(url: "https://github.com/AxApp/OpenAICore", from: "1.4.0"),
+        .package(url: "https://github.com/krzyzanowskim/CryptoSwift.git", from: "1.8.3"),
+        .package(url: "https://github.com/apple/swift-http-types.git", from: "1.3.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -32,8 +33,10 @@ let package = Package(
         .target(
             name: "VaporLite",
             dependencies: [
-                .product(name: "Alamofire", package: "Alamofire"),
                 .product(name: "Vapor", package: "vapor"),
+                .product(name: "NIOCore", package: "swift-nio"),
+                .product(name: "NIOPosix", package: "swift-nio"),
+                .product(name: "Alamofire", package: "Alamofire"),
                 .product(name: "Queues", package: "queues"),
                 .product(name: "Redis", package: "redis"),
                 .product(name: "Fluent", package: "fluent"),
