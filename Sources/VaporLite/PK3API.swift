@@ -56,11 +56,10 @@ public extension PK3API {
                           timestamp: timestamp)
         
         app.logger.debug("PK: 开始请求")
-        
-        var request = ClientRequest(method: .POST, url: uri)
-        try request.content.encode(query, as: .urlEncodedForm)
-        request.headers.contentType = .urlEncodedForm
-        let response = try await app.appClient.execute(request, logger: nil)
+        let response = try await app.client.send(.POST, to: uri, beforeSend: { request in
+            request.headers.contentType = .urlEncodedForm
+            try request.content.encode(query, as: .urlEncodedForm)
+        })
         guard (200...299).contains(response.status.code) else {
             throw AxError.pk_network
         }
