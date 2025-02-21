@@ -73,9 +73,7 @@ public extension Logger.Message {
     }
     
     init<Element: Codable>(codable payload: Element) {
-        let str = try? JSONEncoder.encodeToJSON(payload, configuration: { encoder in
-            encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-        })
+        let str = try? JSONEncoder.encode(toJSON: payload)
         self.init(stringLiteral: str ?? "")
     }
     
