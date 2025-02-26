@@ -5,7 +5,7 @@
 //  Created by linhey on 2024/1/26.
 //
 
-import Foundation
+import Vapor
 import Fluent
 import STJSON
 
@@ -18,60 +18,30 @@ public extension Model {
         return try JSONDecoder.shared.decode(type, from: data)
     }
     
-    func decode<V: JSONDecodableModel>(_ path: ReferenceWritableKeyPath<Self, String?>, _ type: V.Type) throws -> V {
-        guard let str = self[keyPath: path] else {
-            throw AxError.database_decode
-        }
-        return try .init(from: JSON(parseJSON: str))
-    }
+}
+
+public extension QueryBuilder {
     
-    func json(_ path: ReferenceWritableKeyPath<Self, String?>, _ value: JSON) -> Self {
-        self[keyPath: path] = value.rawString()
-        return self
-    }
-    
-    func json(_ path: ReferenceWritableKeyPath<Self, String?>, _ value: Codable) -> Self {
-        guard let data = try? JSONEncoder.shared.encode(value), let string = String(data: data, encoding: .utf8) else {
-                return self
-            }
-        self[keyPath: path] = string
-        return self
-    }
-    
-    func json(_ path: KeyPath<Self, String?>) -> JSON? {
-        guard let value = self[keyPath: path]?.data(using: .utf8) else {
-            return nil
-        }
-        return try? .init(data: value)
-    }
-    
-    func json(_ path: KeyPath<Self, String>) -> JSON? {
-        guard let value = self[keyPath: path].data(using: .utf8) else {
-            return nil
-        }
-        return try? .init(data: value)
-    }
-    
-    static func scan(page_size: Int = 1000,
-                     on database: Database,
-                     builder: (_ builder: QueryBuilder<Self>) -> QueryBuilder<Self> = { $0 },
-                     callback: ((_ model: Self) async throws -> Void),
-                     finish: (() async throws -> Void)? = nil) async throws {
-        let count = try await builder(Self.query(on: database)).count()
+    func stream(size: Int = 1,
+                progress: ((_ page: PageMetadata) -> Void)? = nil,
+                callback: @escaping ((_ model: Model) async throws -> Void)) async throws {
+        let count = try await count()
         guard count > 0 else {
             return
         }
-        let max_page_number = count / page_size + (count % page_size == 0 ? 0 : 1)
+        let max_page_number = count / size + (count % size == 0 ? 0 : 1)
         for index in 1...max_page_number {
-            let items = try await builder(Self.query(on: database))
-                .page(withIndex: index, size: page_size)
-                .items
-            for item in items {
-                try await callback(item)
+            let page = try await self.page(withIndex: index, size: size)
+            progress?(page.metadata)
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                for item in page.items {
+                    group.addTask {
+                        try await callback(item)
+                    }
+                }
+                try await group.waitForAll()
             }
         }
-        try await finish?()
     }
-
     
 }
